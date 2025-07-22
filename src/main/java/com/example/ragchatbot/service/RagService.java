@@ -1,59 +1,59 @@
 package com.example.ragchatbot.service;
 
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.prompt.PromptTemplate;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class RagService {
 
     private final ChatClient chatClient;
+    private final VectorStore vectorStore;
 
-    // Placeholder for VectorStore - will be uncommented and used for RAG
-    // private final VectorStore vectorStore;
+    @Value("classpath:/prompts/rag-prompt.st")
+    private Resource ragPromptResource;
 
-    public RagService(ChatClient.Builder chatClientBuilder) {
+    public RagService(ChatClient.Builder chatClientBuilder, VectorStore vectorStore) {
         this.chatClient = chatClientBuilder.build();
-        // Initialize vectorStore here when you add RAG.
-        // Example: this.vectorStore = new SimpleVectorStore();
+        this.vectorStore = vectorStore;
     }
 
     public String chatWithRag(String userMessage) {
-        // --- Placeholder for RAG Logic (to be implemented later) ---
+        SearchRequest request = SearchRequest.builder()
+                .query(userMessage)
+                .topK(2)
+                .build();
+        List<Document> relevantDocuments = this.vectorStore.similaritySearch(request);
 
-        // 1. Retrieve relevant documents from a vector store based on userMessage.
-        // List<Document> relevantDocuments = vectorStore.retrieve(userMessage);
+        // Corrected: Use document.getText() to get the document's content
+        String context = relevantDocuments.stream()
+                .map(Document::getText)
+                .collect(Collectors.joining("\n"));
 
-        // 2. Augment the user's message with retrieved document content.
-        // StringBuilder augmentedPrompt = new StringBuilder();
-        // augmentedPrompt.append(userMessage).append("\n\n");
-        // if (!relevantDocuments.isEmpty()) {
-        //     augmentedPrompt.append("Here is some relevant context:\n");
-        //     relevantDocuments.forEach(doc -> augmentedPrompt.append(doc.getContent()).append("\n"));
-        // }
+        // Add these lines to inspect the context
+        System.out.println("--- Retrieved Context ---");
+        System.out.println(context);
+        System.out.println("-------------------------");
 
-        // 3. Send the augmented prompt to the LLM.
-        // return chatClient.prompt()
-        //         .user(augmentedPrompt.toString())
-        //         .call()
-        //         .content();
+        PromptTemplate promptTemplate = new PromptTemplate(this.ragPromptResource);
+        Map<String, Object> promptValues = Map.of("context", context, "question", userMessage);
 
-        // For now, it's just direct LLM inference (same as /api/chat)
         return chatClient.prompt()
-                .user(userMessage)
+                .messages(promptTemplate.createMessage(promptValues))
                 .call()
                 .content();
     }
 
-    // Method to load documents into the vector store (for RAG)
     public void loadDocumentsForRag(List<String> documentContents) {
-        // This method will be expanded to process and embed your data files
-        // and store them in the vector store.
         System.out.println("Loading documents for RAG (placeholder): " + documentContents.size() + " documents");
-        // documentContents.forEach(content -> {
-        //     Document document = new Document(content);
-        //     vectorStore.add(List.of(document));
-        // });
     }
 }
