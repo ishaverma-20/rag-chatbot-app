@@ -3,19 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spring AI Llama Chatbot</title>
+    <title>Ask Rancho</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
 </head>
 <body>
-<div class="chat-container">
-    <h1>Ask Rancho</h1>
-    <div class="chat-box" id="chat-box">
-    </div>
-    <div class="input-container">
-        <input type="text" id="user-input" placeholder="Type your message...">
-        <button id="send-button">Send</button>
-        <button id="rag-send-button">RAG Send</button>
-    </div>
+<div id="app-container">
+    <header class="app-header">
+        <div class="logo">Ask Rancho</div>
+        <div class="auth-buttons" id="auth-container"></div>
+    </header>
+    <main class="chat-area" id="chat-box"></main>
+    <footer class="input-area">
+        <div class="input-wrapper">
+            <input type="text" id="user-input" placeholder="Ask me anything...">
+        </div>
+        <div class="button-container">
+            <button id="rag-send-button" class="chat-button">Ask with RAG</button>
+            <button id="normal-send-button" class="chat-button">Ask Llama 3</button>
+        </div>
+    </footer>
 </div>
 <script src="script.js"></script>
 </body>

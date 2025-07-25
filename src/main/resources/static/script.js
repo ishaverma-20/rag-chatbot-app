@@ -1,59 +1,73 @@
 document.addEventListener('DOMContentLoaded', () => {
     const chatBox = document.getElementById('chat-box');
     const userInput = document.getElementById('user-input');
-    const sendButton = document.getElementById('send-button');
     const ragSendButton = document.getElementById('rag-send-button');
+    const normalSendButton = document.getElementById('normal-send-button');
+    const authContainer = document.getElementById('auth-container');
+
+    // Initialize the Showdown converter
+    const converter = new showdown.Converter();
+
+    async function checkAuthStatus() {
+        try {
+            const response = await fetch('/api/auth/status');
+            const data = await response.json();
+            if (data.isAuthenticated) {
+                authContainer.innerHTML = '<a href="/logout">Logout</a>';
+            } else {
+                authContainer.innerHTML = '<a href="/login">Login</a>';
+            }
+        } catch (error) {
+            console.error("Auth check failed:", error);
+            authContainer.innerHTML = '<a href="/login">Login</a>';
+        }
+    }
 
     function addMessage(sender, message) {
         const messageDiv = document.createElement('div');
-        messageDiv.classList.add('message');
-        if (sender === 'user') {
-            messageDiv.classList.add('user-message');
+        messageDiv.classList.add('message', sender === 'user' ? 'user-message' : 'bot-message');
+
+        // If the message is from the bot, convert it from Markdown to HTML
+        if (sender === 'bot') {
+            const html = converter.makeHtml(message);
+            messageDiv.innerHTML = html;
         } else {
-            messageDiv.classList.add('bot-message');
+            messageDiv.textContent = message;
         }
-        messageDiv.textContent = message;
+
         chatBox.appendChild(messageDiv);
-        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+        chatBox.scrollTop = chatBox.scrollHeight;
     }
 
     async function sendMessage(endpoint) {
         const message = userInput.value.trim();
         if (message) {
             addMessage('user', message);
-            userInput.value = ''; // Clear input
-
+            userInput.value = '';
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: message })
                 });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
                 addMessage('bot', data.response);
             } catch (error) {
                 console.error('Error sending message:', error);
-                addMessage('bot', 'Sorry, I am unable to respond at the moment.');
+                addMessage('bot', 'Sorry, an error occurred.');
             }
         }
     }
 
-    sendButton.addEventListener('click', () => sendMessage('/api/chat'));
     ragSendButton.addEventListener('click', () => sendMessage('/api/rag-chat'));
+    normalSendButton.addEventListener('click', () => sendMessage('/api/chat'));
 
     userInput.addEventListener('keypress', (event) => {
         if (event.key === 'Enter') {
-            sendMessage('/api/chat');
+            sendMessage('/api/rag-chat');
         }
     });
 
-    // Initial welcome message from the bot
-    addMessage('bot', 'Hello! How can I help you today? Ask me anything.');
+    checkAuthStatus();
 });
